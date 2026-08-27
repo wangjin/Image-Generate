@@ -22,7 +22,8 @@ osacompile -o "$STAGING/安装 ${APP_NAME}.app" "$SCRIPT_DIR/install-droplet.app
 cp -R "$SRC_APP" "$STAGING/${APP_NAME}.app"
 ln -s /Applications "$STAGING/Applications"
 
-# 3) 打 DMG（UDZO 压缩）
+# 3) 打 DMG（UDZO 压缩；父目录需预先创建，hdiutil 不会自建）
+mkdir -p "$(dirname "$OUT_DMG")"
 rm -f "$OUT_DMG"
 hdiutil create -volname "$APP_NAME" -srcfolder "$STAGING" -ov -format UDZO "$OUT_DMG"
 
