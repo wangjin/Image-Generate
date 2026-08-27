@@ -37,7 +37,7 @@ jobs:
         include:
           - os: macos-15
             artifact_name: ImageGenerate-macos
-            artifact_path: dist-release/ImageGenerate-macos.dmg
+            artifact_path: dist-release/*.dmg
           - os: windows-latest
             artifact_name: ImageGenerate-windows
             artifact_path: src-tauri/target/release/bundle/nsis/*-setup.exe
@@ -60,7 +60,7 @@ jobs:
         run: pnpm tauri build
       - name: Deep ad-hoc sign & repack DMG (macOS only)
         if: matrix.os == 'macos-15'
-        run: bash scripts/make-dmg.sh src-tauri/target/release/bundle/macos/ImageGenerate.app dist-release/ImageGenerate-macos.dmg
+        run: bash scripts/make-dmg.sh src-tauri/target/release/bundle/macos/ImageGenerate.app dist-release
       - uses: actions/upload-artifact@v5
         with:
           name: ${{ matrix.artifact_name }}

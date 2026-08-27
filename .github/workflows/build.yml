@@ -42,9 +42,9 @@ jobs:
       - name: Build macOS app (tauri build)
         run: pnpm tauri build
       - name: Deep ad-hoc sign & repack DMG
-        run: bash scripts/make-dmg.sh src-tauri/target/release/bundle/macos/ImageGenerate.app dist-release/ImageGenerate-macos.dmg
+        run: bash scripts/make-dmg.sh src-tauri/target/release/bundle/macos/ImageGenerate.app dist-release
       - uses: actions/upload-artifact@v5
         with:
           name: ImageGenerate-macos
-          path: dist-release/ImageGenerate-macos.dmg
+          path: dist-release/*.dmg
           if-no-files-found: error
