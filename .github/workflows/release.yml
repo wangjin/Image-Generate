@@ -58,7 +58,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Build app (tauri build)
         run: pnpm tauri build
-      - name: Repack DMG with drag installer (macOS only)
+      - name: Deep ad-hoc sign & repack DMG (macOS only)
         if: matrix.os == 'macos-15'
         run: bash scripts/make-dmg.sh src-tauri/target/release/bundle/macos/ImageGenerate.app dist-release/ImageGenerate-macos.dmg
       - uses: actions/upload-artifact@v5
@@ -100,13 +100,14 @@ jobs:
             echo ""
             echo "## 💻 macOS 使用说明"
             echo ""
-            echo "1. 打开 .dmg，把 **ImageGenerate.app 拖到「安装 ImageGenerate」图标上**；"
-            echo "2. 输入管理员密码，提示完成即安装结束——已自动去除隔离属性并完成自签，直接打开即可；"
-            echo "3. 若仍遇拦截（或习惯手动拖拽安装），请在终端执行："
+            echo "应用未做 Apple 公证（免费发行的限制），首次打开若提示\"已损坏\"或\"无法验证\"，"
+            echo "在终端执行一条命令即可："
             echo ""
             echo '```bash'
             echo "xattr -cr /Applications/ImageGenerate.app"
             echo '```'
+            echo ""
+            echo "之后双击打开，无需再操作。"
           } > /tmp/release-notes.md
           {
             echo "body<<RELEASEEOF"

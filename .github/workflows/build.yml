@@ -41,7 +41,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Build macOS app (tauri build)
         run: pnpm tauri build
-      - name: Repack DMG with drag installer
+      - name: Deep ad-hoc sign & repack DMG
         run: bash scripts/make-dmg.sh src-tauri/target/release/bundle/macos/ImageGenerate.app dist-release/ImageGenerate-macos.dmg
       - uses: actions/upload-artifact@v5
         with:

@@ -40,4 +40,4 @@ pnpm tauri build  # 打包 dmg
 git tag v0.1.0 && git push origin v0.1.0   # 触发发布
 ```
 
-macOS 包未签名。推荐用法：打开 dmg 后**把 app 拖到「安装 ImageGenerate」图标上**，输入管理员密码即自动完成安装+去隔离+自签。手动安装时如遇 Gatekeeper 拦截执行：`xattr -cr /Applications/ImageGenerate.app`
+macOS 包未做 Apple 公证：dmg 内将 app 拖入 Applications 后，首次打开若提示"已损坏/无法验证"，执行一次 `xattr -cr /Applications/ImageGenerate.app` 即可（根治方案是 Developer ID 签名+公证，$99/年）。
