@@ -1,0 +1,11 @@
+node_modules/
+dist/
+src-tauri/target/
+src-tauri/gen/schemas/
+
+.DS_Store
+*.log
+
+# Trellis runtime（会话态，不入库）
+.trellis/.developer
+.trellis/.runtime/
