@@ -33,6 +33,7 @@ export default function GeneratePage() {
   const active = stateData?.providers.find((p) => p.id === activeId);
 
   async function submit() {
+    if (loading) return;
     if (!prompt.trim()) {
       setErr("请输入图像描述 prompt");
       return;
@@ -50,6 +51,16 @@ export default function GeneratePage() {
     }
   }
 
+  // WKWebView（macOS）在文本框聚焦时会吞掉第一次 click；
+  // 若按下时焦点仍在输入框，直接在 mousedown 阶段提交
+  function pressFix(e: React.MouseEvent) {
+    const el = document.activeElement;
+    if (el && (el.tagName === "TEXTAREA" || el.tagName === "INPUT")) {
+      e.preventDefault();
+      void submit();
+    }
+  }
+
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader title="生成" caption="TEXT → IMAGE · 结果自动落盘" />
@@ -64,8 +75,11 @@ export default function GeneratePage() {
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
+          onKeyDown={(e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === "Enter") void submit();
+          }}
           rows={5}
-          placeholder="一只海獭宝宝漂浮在平静海面上，柔和晨光，写实摄影风格"
+          placeholder="一只海獭宝宝漂浮在平静海面上，柔和晨光，写实摄影风格（⌘+Enter 快速生成）"
           className="field resize-y"
         />
       </div>
@@ -78,6 +92,7 @@ export default function GeneratePage() {
         <button
           type="button"
           disabled={loading || !stateData}
+          onMouseDown={pressFix}
           onClick={() => void submit()}
           className="btn-primary"
         >

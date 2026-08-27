@@ -68,6 +68,7 @@ export default function EditPage() {
   }
 
   async function submit() {
+    if (loading) return;
     if (!prompt.trim()) {
       setErr("请输入编辑指令 prompt");
       return;
@@ -87,6 +88,16 @@ export default function EditPage() {
       setErr(toErrorMessage(e));
     } finally {
       setLoading(false);
+    }
+  }
+
+  // WKWebView（macOS）在文本框聚焦时会吞掉第一次 click；
+  // 若按下时焦点仍在输入框，直接在 mousedown 阶段提交
+  function pressFix(e: React.MouseEvent) {
+    const el = document.activeElement;
+    if (el && (el.tagName === "TEXTAREA" || el.tagName === "INPUT")) {
+      e.preventDefault();
+      void submit();
     }
   }
 
@@ -148,8 +159,11 @@ export default function EditPage() {
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
+          onKeyDown={(e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === "Enter") void submit();
+          }}
           rows={4}
-          placeholder="把背景改成雪山，人物保持不变"
+          placeholder="把背景改成雪山，人物保持不变（⌘+Enter 快速编辑）"
           className="field resize-y"
         />
       </div>
@@ -159,7 +173,13 @@ export default function EditPage() {
       </div>
 
       <div className="mt-8 flex items-center gap-4">
-        <button type="button" disabled={loading} onClick={() => void submit()} className="btn-primary">
+        <button
+          type="button"
+          disabled={loading}
+          onMouseDown={pressFix}
+          onClick={() => void submit()}
+          className="btn-primary"
+        >
           {loading ? "编辑中" : "开始编辑"}
         </button>
       </div>
