@@ -345,7 +345,7 @@ fn match_ext_mime(path: &str) -> Option<&'static str> {
 pub fn reveal_path(app: tauri::AppHandle, path: String) -> Result<(), AppError> {
     use tauri_plugin_opener::OpenerExt;
     app.opener()
-        .reveal_item_in_dir(&path)
+        .reveal_item_in_dir(path)
         .map_err(|e| AppError::io(format!("无法在访达中定位：{}", e)))?;
     Ok(())
 }

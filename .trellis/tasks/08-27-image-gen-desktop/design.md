@@ -120,7 +120,16 @@ src/
 
 ## 构建与发布（GitHub Actions，本地零编译）
 
-本地不安装 Rust（D5）：Rust/打包问题全部由 CI 暴露。本地仅保留前端能力——`pnpm dev`（纯 Vite 预览 UI，invoke 调用会失败，用于布局/样式迭代）、`pnpm build`（tsc 类型检查）。
+本地不安装 Rust（D5）：Rust 编译校验通过 **rust:latest Docker 容器**执行 `cargo check`（镜像层 `imggen-check:latest` 预装 Tauri Linux 构建依赖：libgtk-3 / webkit2gtk-4.1 / ayatana-appindicator / librsvg；cargo registry 与 target 用命名卷缓存，重复迭代增量编译）。打包仍走 CI 的 macOS runner——容器内只能 check，无法产出 macOS 包。前端能力：`pnpm dev`（纯 Vite 预览 UI）、`pnpm build`（tsc 类型检查）。
+
+**容器校验命令**：
+```bash
+docker run --rm -v "$PWD":/work -w /work/src-tauri \
+  -v imggen-cargo-registry:/usr/local/cargo/registry \
+  -v imggen-cargo-git:/usr/local/cargo/git \
+  -v imggen-target:/work/src-tauri/target \
+  imggen-check:latest cargo check
+```
 
 流水线仿 `android-file-viewer`，适配 Tauri 2：
 

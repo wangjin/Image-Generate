@@ -56,3 +56,9 @@ impl From<reqwest::Error> for AppError {
         }
     }
 }
+
+impl From<image::ImageError> for AppError {
+    fn from(e: image::ImageError) -> Self {
+        AppError::io(format!("图片处理失败：{}", e))
+    }
+}

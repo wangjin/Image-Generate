@@ -35,10 +35,17 @@
 
 ```bash
 pnpm build                 # 本地 tsc + vite build（前端类型检查，无需 Rust）
-git push                   # 触发 CI：cargo 编译 + tauri build + artifact
-# Actions 页下载 dmg 安装手测；排错看 Actions 日志
+docker run --rm -v "$PWD":/work -w /work/src-tauri \
+  -v imggen-cargo-registry:/usr/local/cargo/registry \
+  -v imggen-cargo-git:/usr/local/cargo/git \
+  -v imggen-target:/work/src-tauri/target \
+  imggen-check:latest bash -c "cargo check"   # 本地容器 Rust 校验（勿用 -l，会重置 PATH）
+git push                   # 触发 CI：macOS 真实 tauri build + artifact
+# Actions 页下载 dmg 安装手测；打包问题看 Actions 日志（Linux 容器无法产 macOS 包）
 git tag v0.1.0 && git push origin v0.1.0   # 触发发布流水线
 ```
+
+> 检查镜像 `imggen-check:latest` 基于 rust:latest，预装 Tauri Linux 编译依赖（gtk3/webkit2gtk-4.1/ayatana/rsvg），构建命令见 design.md。
 
 ## 风险点与回滚
 
