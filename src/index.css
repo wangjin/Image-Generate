@@ -1,5 +1,21 @@
 @import "tailwindcss";
 
+/* ── 设计令牌：看片台(stage) × 工作台(paper)，朱砂为唯一强调色 ── */
+@theme {
+  --color-paper: #f6f4ef;
+  --color-paper-2: #fcfbf8;
+  --color-line: #dfd9ce;
+  --color-ink: #211e1b;
+  --color-ink-2: #6e675c;
+  --color-stage: #262320;
+  --color-stage-2: #37332f;
+  --color-bone: #ede8df;
+  --color-bone-2: #a39c90;
+  --color-cinnabar: #c43e26;
+  --color-cinnabar-hi: #a8331f;
+  --font-display: "Songti SC", "STSong", "NSimSun", "Noto Serif SC", serif;
+}
+
 html,
 body,
 #root {
@@ -9,13 +25,164 @@ body,
 body {
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB",
     "Microsoft YaHei", "Segoe UI", Roboto, sans-serif;
+  background: var(--color-paper);
+  color: var(--color-ink);
 }
 
-/* 原生滚动条贴合深浅配色 */
+::selection {
+  background: var(--color-cinnabar);
+  color: #fff7ef;
+}
+
 ::-webkit-scrollbar {
   width: 10px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #cdc6b8;
   border-radius: 6px;
+  border: 2px solid var(--color-paper);
+}
+
+:where(button, a, select, input, textarea, [role="switch"]):focus-visible {
+  outline: 2px solid var(--color-cinnabar);
+  outline-offset: 1px;
+}
+
+input[type="radio"],
+input[type="checkbox"] {
+  accent-color: var(--color-cinnabar);
+}
+
+/* ── 组件层 ── */
+
+/* 仪器标签：等宽、小号、宽字距 */
+.eyebrow {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  color: var(--color-ink-2);
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+.field {
+  width: 100%;
+  border: 1px solid var(--color-line);
+  background: var(--color-paper-2);
+  border-radius: 2px;
+  padding: 7px 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-ink);
+  transition: border-color 120ms ease;
+}
+.field:hover {
+  border-color: #cbc3b3;
+}
+.field::placeholder {
+  color: #a89f90;
+}
+
+.select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%236E675C' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 30px;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--color-cinnabar);
+  color: #fff7ef;
+  border-radius: 2px;
+  padding: 9px 26px;
+  font-size: 13.5px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  transition: background 120ms ease;
+}
+.btn-primary:hover {
+  background: var(--color-cinnabar-hi);
+}
+.btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--color-line);
+  color: var(--color-ink-2);
+  border-radius: 2px;
+  padding: 6px 14px;
+  font-size: 12.5px;
+  transition: all 120ms ease;
+  background: transparent;
+}
+.btn-ghost:hover {
+  border-color: #c9c1af;
+  color: var(--color-ink);
+  background: var(--color-paper-2);
+}
+
+/* 分节标尺线 */
+.rule-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.rule-row::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: var(--color-line);
+}
+
+/* ── 签名元素：看片台展示井 ── */
+.well {
+  background: radial-gradient(
+      120% 140% at 50% 0%,
+      var(--color-stage-2) 0%,
+      var(--color-stage) 55%
+    );
+  border-radius: 4px;
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.05),
+    inset 0 2px 14px rgb(0 0 0 / 0.35);
+}
+
+/* 显影动画：相纸成像 */
+.developing {
+  position: relative;
+  overflow: hidden;
+}
+.developing::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    115deg,
+    transparent 0 42px,
+    rgb(237 232 223 / 0.08) 42px 84px
+  );
+  transform: translateX(-100%);
+  animation: develop 1.5s linear infinite;
+}
+@keyframes develop {
+  to {
+    transform: translateX(100%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .developing::after {
+    animation: none;
+  }
 }

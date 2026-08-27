@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import ErrorBar from "../components/ErrorBar";
 import GenParamsForm from "../components/GenParamsForm";
+import PageHeader from "../components/PageHeader";
 import ResultView from "../components/ResultView";
 import { generateImage, toErrorMessage } from "../lib/commands";
 import { DEFAULT_PARAMS, type GenParams, type HistoryEntry } from "../lib/types";
@@ -50,45 +51,53 @@ export default function GeneratePage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <h1 className="text-xl font-semibold">图片生成</h1>
+    <div className="mx-auto max-w-3xl">
+      <PageHeader title="生成" caption="TEXT → IMAGE · 结果自动落盘" />
 
-      {!active && (
-        <ErrorBar message="尚未配置服务商，请先到「设置」页完成配置" />
-      )}
+      {!active && <ErrorBar message="尚未配置服务商，请先到「设置」页完成配置" />}
       {active && !active.apiKey && (
         <ErrorBar message={`服务商「${active.name}」还未填写 API Key，请到「设置」页填写`} />
       )}
 
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-slate-600">Prompt（图像描述）</label>
+      <div className="mt-6 space-y-2">
+        <span className="eyebrow">PROMPT · 图像描述</span>
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           rows={5}
-          placeholder="例如：一只海獭宝宝漂浮在平静海面上，柔和晨光，写实摄影风格"
-          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+          placeholder="一只海獭宝宝漂浮在平静海面上，柔和晨光，写实摄影风格"
+          className="field resize-y"
         />
       </div>
 
-      <GenParamsForm value={params} onChange={setParams} />
+      <div className="mt-7">
+        <GenParamsForm value={params} onChange={setParams} />
+      </div>
 
-      <div className="flex items-center gap-3">
+      <div className="mt-8 flex items-center gap-4">
         <button
           type="button"
           disabled={loading || !stateData}
           onClick={() => void submit()}
-          className="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="btn-primary"
         >
-          {loading ? "生成中…" : "生成"}
+          {loading ? "生成中" : "生成"}
         </button>
         {loading && (
-          <span className="text-xs text-slate-400">已提交请求，请耐心等待（4K 可能耗时较长）</span>
+          <span className="mono text-[11px] text-ink-2">
+            已提交请求（4K 分辨率可能耗时较长）
+          </span>
         )}
       </div>
 
-      <ErrorBar message={err} />
-      <ResultView entry={lastResult?.mode === "generate" ? lastResult : null} outputDir={stateData?.outputDir ?? ""} />
+      <div className="mt-6 space-y-6">
+        <ErrorBar message={err} />
+        <ResultView
+          entry={lastResult?.mode === "generate" ? lastResult : null}
+          outputDir={stateData?.outputDir ?? ""}
+          loading={loading}
+        />
+      </div>
     </div>
   );
 }

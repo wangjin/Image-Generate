@@ -1,7 +1,7 @@
 export default function ErrorBar({ message }: { message: string }) {
   if (!message) return null;
   return (
-    <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 whitespace-pre-wrap">
+    <div className="rounded-[3px] border-l-2 border-cinnabar bg-[#f9ede8] px-3.5 py-2.5 text-[13px] leading-relaxed text-[#7c2d1a] whitespace-pre-wrap">
       {message}
     </div>
   );

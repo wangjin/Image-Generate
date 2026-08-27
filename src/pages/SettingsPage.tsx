@@ -1,5 +1,6 @@
 import { useState } from "react";
 import ErrorBar from "../components/ErrorBar";
+import PageHeader from "../components/PageHeader";
 import {
   deleteProvider,
   pickDirectory,
@@ -18,9 +19,6 @@ interface Draft {
   model: string;
   builtin: boolean;
 }
-
-const inputCls =
-  "w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none";
 
 function ProviderForm({
   draft,
@@ -56,39 +54,39 @@ function ProviderForm({
   }
 
   return (
-    <div className="space-y-2 rounded-lg border border-indigo-200 bg-indigo-50/40 p-3">
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        <label className="space-y-1 text-xs text-slate-500">
-          名称
+    <div className="mt-2 space-y-3 rounded-[3px] border border-line border-l-cinnabar border-l-2 bg-paper-2 p-3.5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <label className="space-y-1.5">
+          <span className="eyebrow">名称 NAME</span>
           <input
-            className={inputCls}
+            className="field"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            placeholder="例如：OpenAI / 自定义中转"
+            placeholder="OpenAI / 自定义中转"
           />
         </label>
-        <label className="space-y-1 text-xs text-slate-500">
-          Model（模型 ID）
+        <label className="space-y-1.5">
+          <span className="eyebrow">模型 MODEL</span>
           <input
-            className={inputCls}
+            className="field mono !text-[12px]"
             value={form.model}
             onChange={(e) => setForm({ ...form, model: e.target.value })}
             placeholder="sensenova-u1.5-lite"
           />
         </label>
-        <label className="space-y-1 text-xs text-slate-500 sm:col-span-2">
-          Base URL
+        <label className="space-y-1.5 sm:col-span-2">
+          <span className="eyebrow">BASE URL</span>
           <input
-            className={inputCls}
+            className="field mono !text-[12px]"
             value={form.baseUrl}
             onChange={(e) => setForm({ ...form, baseUrl: e.target.value.trim() })}
             placeholder="https://token.sensenova.cn"
           />
         </label>
-        <label className="space-y-1 text-xs text-slate-500 sm:col-span-2">
-          API Key
+        <label className="space-y-1.5 sm:col-span-2">
+          <span className="eyebrow">API KEY</span>
           <input
-            className={inputCls}
+            className="field mono !text-[12px]"
             type="password"
             value={form.apiKey}
             onChange={(e) => setForm({ ...form, apiKey: e.target.value })}
@@ -102,15 +100,11 @@ function ProviderForm({
           type="button"
           disabled={saving}
           onClick={() => void save()}
-          className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+          className="btn-primary !py-[7px] !text-[12.5px]"
         >
-          {saving ? "保存中…" : "保存"}
+          {saving ? "保存中" : "保存"}
         </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-md border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-white"
-        >
+        <button type="button" onClick={onCancel} className="btn-ghost">
           取消
         </button>
       </div>
@@ -126,7 +120,7 @@ export default function SettingsPage() {
   const [err, setErr] = useState("");
 
   if (!stateData) {
-    return <div className="text-sm text-slate-400">加载配置中…</div>;
+    return <div className="mono text-sm text-ink-2">加载配置中…</div>;
   }
 
   async function onPickDir() {
@@ -142,39 +136,33 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <h1 className="text-xl font-semibold">设置</h1>
+    <div className="mx-auto max-w-3xl">
+      <PageHeader title="设置" caption="PROVIDERS · OUTPUT" />
       <ErrorBar message={err} />
 
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-slate-700">服务商</h2>
+      {/* 服务商 */}
+      <section className="mt-6">
+        <div className="rule-row">
+          <span className="eyebrow">服务商 PROVIDERS</span>
           <button
             type="button"
             onClick={() => setEditingId("new")}
-            className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
+            className="btn-ghost !border-cinnabar/50 !py-1 !text-cinnabar hover:!bg-[#f9ede8] hover:!text-cinnabar-hi"
           >
-            + 新增服务商
+            + 新增
           </button>
         </div>
 
         {editingId === "new" && (
           <ProviderForm
-            draft={{
-              id: null,
-              name: "",
-              baseUrl: "",
-              apiKey: "",
-              model: "",
-              builtin: false,
-            }}
+            draft={{ id: null, name: "", baseUrl: "", apiKey: "", model: "", builtin: false }}
             onCancel={() => setEditingId(null)}
           />
         )}
 
-        <ul className="space-y-2">
+        <ul className="mt-4 space-y-2">
           {stateData.providers.map((p) => (
-            <li key={p.id} className="rounded-lg border border-slate-200 bg-white p-3">
+            <li key={p.id} className="rounded-[3px] border border-line bg-paper-2 px-4 py-3">
               {editingId === p.id ? (
                 <ProviderForm
                   draft={{
@@ -189,7 +177,7 @@ export default function SettingsPage() {
                 />
               ) : (
                 <div className="flex items-center gap-3">
-                  <label className="flex cursor-pointer items-center gap-2">
+                  <label className="flex min-w-0 cursor-pointer items-center gap-2.5">
                     <input
                       type="radio"
                       name="active-provider"
@@ -200,20 +188,26 @@ export default function SettingsPage() {
                           .catch((e) => setErr(toErrorMessage(e)))
                       }
                     />
-                    <span className="text-sm font-medium">{p.name}</span>
+                    <span className="truncate text-[13px] font-medium">{p.name}</span>
                   </label>
                   {p.builtin && (
-                    <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">
+                    <span className="mono shrink-0 rounded-[2px] border border-line px-1 py-px text-[9.5px] tracking-wide text-ink-2">
                       预置
                     </span>
                   )}
-                  <span className="min-w-0 flex-1 truncate text-xs text-slate-400">
-                    {p.baseUrl} · {p.model} · {p.apiKey ? "已填 Key ✓" : "未填 Key"}
+                  <span
+                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                      p.apiKey ? "bg-bone" : "bg-cinnabar"
+                    }`}
+                    style={p.apiKey ? { background: "#7d9a6f" } : undefined}
+                  />
+                  <span className="mono min-w-0 flex-1 truncate text-[11px] text-ink-2" title={`${p.baseUrl} · ${p.model}`}>
+                    {p.baseUrl} · {p.model} · {p.apiKey ? "KEY OK" : "缺 KEY"}
                   </span>
                   <button
                     type="button"
                     onClick={() => setEditingId(p.id)}
-                    className="text-xs text-indigo-600 hover:underline"
+                    className="shrink-0 text-[12px] text-cinnabar underline-offset-2 hover:underline"
                   >
                     编辑
                   </button>
@@ -226,7 +220,7 @@ export default function SettingsPage() {
                         .then(refreshState)
                         .catch((e) => setErr(toErrorMessage(e)));
                     }}
-                    className="text-xs text-red-500 hover:underline disabled:cursor-not-allowed disabled:text-slate-300 disabled:no-underline"
+                    className="shrink-0 text-[12px] text-ink-2 transition-colors hover:text-cinnabar disabled:pointer-events-none disabled:opacity-30"
                   >
                     删除
                   </button>
@@ -235,27 +229,32 @@ export default function SettingsPage() {
             </li>
           ))}
         </ul>
-        <p className="text-xs leading-5 text-slate-400">
-          预置的商汤 SenseNova 服务商不可删除；接口路径自动拼接为{" "}
-          <code>{"{Base URL}/v1/images/generations"}</code> 与{" "}
-          <code>{"{Base URL}/v1/images/edits"}</code>，兼容 OpenAI Images API 的服务均可接入。
+
+        <p className="mt-3 mono text-[10.5px] leading-5 text-ink-2">
+          接口路径自动拼接为 {"{Base URL}"}/v1/images/generations 与 /v1/images/edits，
+          兼容 OpenAI Images API 的服务均可接入。
         </p>
       </section>
 
-      <section className="space-y-2">
-        <h2 className="text-sm font-semibold text-slate-700">输出目录</h2>
-        <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3">
-          <span className="min-w-0 flex-1 truncate text-sm">{stateData.outputDir}</span>
+      {/* 输出目录 */}
+      <section className="mt-10">
+        <div className="rule-row">
+          <span className="eyebrow">输出目录 OUTPUT DIR</span>
+        </div>
+        <div className="well mt-4 flex items-center gap-4 !rounded-[3px] px-4 py-3">
+          <span className="mono min-w-0 flex-1 truncate text-[12px] text-bone" title={stateData.outputDir}>
+            {stateData.outputDir}
+          </span>
           <button
             type="button"
             onClick={() => void onPickDir()}
-            className="shrink-0 rounded-md border border-slate-300 px-3 py-1.5 text-xs hover:bg-slate-100"
+            className="btn-ghost shrink-0 !border-white/20 !py-1 !text-bone hover:!bg-white/10 hover:!text-bone"
           >
             更改目录…
           </button>
         </div>
-        <p className="text-xs text-slate-400">
-          所有生成结果与编辑输入副本都会保存到该目录（images / thumbs / inputs 子目录）。
+        <p className="mt-2.5 mono text-[10.5px] leading-5 text-ink-2">
+          images / thumbs / inputs 子目录自动创建；所有结果与编辑输入副本均保存于此。
         </p>
       </section>
     </div>

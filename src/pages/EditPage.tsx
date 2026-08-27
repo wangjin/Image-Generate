@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import ErrorBar from "../components/ErrorBar";
 import GenParamsForm from "../components/GenParamsForm";
+import PageHeader from "../components/PageHeader";
 import ResultView from "../components/ResultView";
 import { editImage, pickImages, toErrorMessage } from "../lib/commands";
 import { DEFAULT_PARAMS, type GenParams, type HistoryEntry } from "../lib/types";
@@ -31,19 +32,29 @@ export default function EditPage() {
     }
   }, [pendingEditPath, setPendingEditPath]);
 
-  // 支持拖拽图片进窗口
+  // 支持拖拽图片进窗口（仅 Tauri 环境可用，浏览器预览静默跳过）
   useEffect(() => {
-    const unlisten = getCurrentWebview().onDragDropEvent((event) => {
-      if (event.payload.type !== "drop") return;
-      const dropped = event.payload.paths.filter(
-        (p): p is string => typeof p === "string" && IMG_EXT.test(p),
-      );
-      if (dropped.length > 0) {
-        setInputPaths((prev) => [...prev, ...dropped]);
-      }
-    });
+    let unlisten: (() => void) | null = null;
+    try {
+      getCurrentWebview()
+        .onDragDropEvent((event) => {
+          if (event.payload.type !== "drop") return;
+          const dropped = event.payload.paths.filter(
+            (p): p is string => typeof p === "string" && IMG_EXT.test(p),
+          );
+          if (dropped.length > 0) {
+            setInputPaths((prev) => [...prev, ...dropped]);
+          }
+        })
+        .then((fn) => {
+          unlisten = fn;
+        })
+        .catch(() => {});
+    } catch {
+      // 非 Tauri 环境
+    }
     return () => {
-      void unlisten.then((fn) => fn());
+      unlisten?.();
     };
   }, []);
 
@@ -80,42 +91,48 @@ export default function EditPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <h1 className="text-xl font-semibold">图片编辑</h1>
+    <div className="mx-auto max-w-3xl">
+      <PageHeader title="编辑" caption="IMAGE + PROMPT → IMAGE · 首图为编辑主体" />
 
-      <div className="space-y-2">
-        <div className="flex items-center justify-between text-sm font-medium text-slate-600">
-          <span>参考图（第一张为主编辑图，可多选）</span>
-          <button
-            type="button"
-            onClick={() => void chooseImages()}
-            className="rounded border border-slate-300 px-2 py-1 hover:bg-slate-100"
-          >
+      <KeyMissingHint />
+
+      <div className="mt-6 space-y-2.5">
+        <div className="flex items-center justify-between">
+          <span className="eyebrow">参考图 REFERENCES · 可多选，可拖入窗口</span>
+          <button type="button" onClick={() => void chooseImages()} className="btn-ghost !py-1">
             选择图片…
           </button>
         </div>
+
         {inputPaths.length === 0 ? (
-          <div className="rounded-lg border-2 border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-400">
-            点击「选择图片…」或把 PNG / JPEG / WebP 拖到这里
-          </div>
+          <button
+            type="button"
+            onClick={() => void chooseImages()}
+            className="w-full rounded-[3px] border border-dashed border-line py-12 text-center text-[13px] text-ink-2 transition-colors hover:border-cinnabar hover:text-ink"
+          >
+            点击选择 PNG / JPEG / WebP，或把文件拖到这里
+          </button>
         ) : (
-          <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+          <ul className="space-y-1.5">
             {inputPaths.map((p, i) => (
               <li
                 key={`${p}-${i}`}
-                className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs"
+                className="flex items-center gap-2.5 rounded-[3px] border border-line bg-paper-2 px-3 py-2"
               >
-                {i === 0 && (
-                  <span className="shrink-0 rounded bg-indigo-100 px-1.5 py-0.5 text-[10px] font-medium text-indigo-700">
+                {i === 0 ? (
+                  <span className="mono shrink-0 rounded-[2px] border border-cinnabar px-1 py-px text-[10px] tracking-wide text-cinnabar">
                     主图
                   </span>
+                ) : (
+                  <span className="mono shrink-0 px-1 text-[10px] text-bone-2">参考</span>
                 )}
-                <span className="truncate text-slate-600" title={p}>
+                <span className="mono truncate text-[11.5px] text-ink-2" title={p}>
                   {p}
                 </span>
                 <button
                   type="button"
-                  className="ml-auto shrink-0 text-slate-400 hover:text-red-500"
+                  aria-label={`移除 ${p}`}
+                  className="ml-auto shrink-0 text-[11.5px] text-ink-2 transition-colors hover:text-cinnabar"
                   onClick={() => setInputPaths((prev) => prev.filter((_, j) => j !== i))}
                 >
                   移除
@@ -126,32 +143,47 @@ export default function EditPage() {
         )}
       </div>
 
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-slate-600">编辑指令（描述期望的最终画面）</label>
+      <div className="mt-6 space-y-2">
+        <span className="eyebrow">PROMPT · 编辑指令（描述期望的最终画面）</span>
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           rows={4}
-          placeholder="例如：把背景改成雪山，人物保持不变"
-          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+          placeholder="把背景改成雪山，人物保持不变"
+          className="field resize-y"
         />
       </div>
 
-      <GenParamsForm value={params} onChange={setParams} />
+      <div className="mt-7">
+        <GenParamsForm value={params} onChange={setParams} />
+      </div>
 
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          disabled={loading}
-          onClick={() => void submit()}
-          className="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {loading ? "编辑中…" : "开始编辑"}
+      <div className="mt-8 flex items-center gap-4">
+        <button type="button" disabled={loading} onClick={() => void submit()} className="btn-primary">
+          {loading ? "编辑中" : "开始编辑"}
         </button>
       </div>
 
-      <ErrorBar message={err} />
-      <ResultView entry={lastResult?.mode === "edit" ? lastResult : null} outputDir={stateData?.outputDir ?? ""} />
+      <div className="mt-6 space-y-6">
+        <ErrorBar message={err} />
+        <ResultView
+          entry={lastResult?.mode === "edit" ? lastResult : null}
+          outputDir={stateData?.outputDir ?? ""}
+          loading={loading}
+        />
+      </div>
     </div>
+  );
+}
+
+/** 占位规避：原页面内联的服务商提示统一抽到侧栏后，此页保留组件化提示 */
+function KeyMissingHint() {
+  const stateData = useAppStore((s) => s.stateData);
+  const active = stateData?.providers.find(
+    (p) => p.id === stateData.activeProviderId,
+  );
+  if (!active || active.apiKey) return null;
+  return (
+    <ErrorBar message={`服务商「${active.name}」还未填写 API Key，请到「设置」页填写`} />
   );
 }
