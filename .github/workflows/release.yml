@@ -37,7 +37,7 @@ jobs:
         include:
           - os: macos-15
             artifact_name: ImageGenerate-macos
-            artifact_path: src-tauri/target/release/bundle/dmg/*.dmg
+            artifact_path: dist-release/ImageGenerate-macos.dmg
           - os: windows-latest
             artifact_name: ImageGenerate-windows
             artifact_path: src-tauri/target/release/bundle/nsis/*-setup.exe
@@ -58,6 +58,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Build app (tauri build)
         run: pnpm tauri build
+      - name: Repack DMG with drag installer (macOS only)
+        if: matrix.os == 'macos-15'
+        run: bash scripts/make-dmg.sh src-tauri/target/release/bundle/macos/ImageGenerate.app dist-release/ImageGenerate-macos.dmg
       - uses: actions/upload-artifact@v5
         with:
           name: ${{ matrix.artifact_name }}
@@ -97,14 +100,13 @@ jobs:
             echo ""
             echo "## 💻 macOS 使用说明"
             echo ""
-            echo "双击打开 .dmg 文件，将 ImageGenerate 拖入 Applications 文件夹即可。"
-            echo "如果提示\"无法打开\"或\"已损坏\"（应用未签名），请在终端执行："
+            echo "1. 打开 .dmg，把 **ImageGenerate.app 拖到「安装 ImageGenerate」图标上**；"
+            echo "2. 输入管理员密码，提示完成即安装结束——已自动去除隔离属性并完成自签，直接打开即可；"
+            echo "3. 若仍遇拦截（或习惯手动拖拽安装），请在终端执行："
             echo ""
             echo '```bash'
             echo "xattr -cr /Applications/ImageGenerate.app"
             echo '```'
-            echo ""
-            echo "然后即可正常双击打开。"
           } > /tmp/release-notes.md
           {
             echo "body<<RELEASEEOF"
