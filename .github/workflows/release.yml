@@ -1,0 +1,121 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version tag (e.g. v1.0.0)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Type-check & frontend build (tsc + vite)
+        run: pnpm build
+
+  build:
+    needs: check
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15
+            artifact_name: ImageGenerate-macos
+            artifact_path: src-tauri/target/release/bundle/dmg/*.dmg
+          - os: windows-latest
+            artifact_name: ImageGenerate-windows
+            artifact_path: src-tauri/target/release/bundle/nsis/*-setup.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: pnpm install --frozen-lockfile
+      - name: Build app (tauri build)
+        run: pnpm tauri build
+      - uses: actions/upload-artifact@v5
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_path }}
+          if-no-files-found: error
+
+  release:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v5
+        with:
+          path: artifacts
+      - name: Generate release notes
+        id: notes
+        run: |
+          PREV_TAG=$(git tag --sort=-version:refname | sed -n '2p')
+          if [ -z "$PREV_TAG" ]; then RANGE="HEAD"; else RANGE="$PREV_TAG..HEAD"; fi
+          {
+            echo "## ✨ 新功能"
+            echo ""
+            git log "$RANGE" --format="- %s" --grep="feat" -i 2>/dev/null || true
+            echo ""
+            echo "## 🐛 修复"
+            echo ""
+            git log "$RANGE" --format="- %s" --grep="fix" -i 2>/dev/null || true
+            echo ""
+            echo "## 📦 下载"
+            echo ""
+            echo "| 平台 | 文件 |"
+            echo "|------|------|"
+            echo "| macOS | \`ImageGenerate_*.dmg\` |"
+            echo "| Windows | \`ImageGenerate_*-setup.exe\` |"
+            echo ""
+            echo "## 💻 macOS 使用说明"
+            echo ""
+            echo "双击打开 .dmg 文件，将 ImageGenerate 拖入 Applications 文件夹即可。"
+            echo "如果提示\"无法打开\"或\"已损坏\"（应用未签名），请在终端执行："
+            echo ""
+            echo '```bash'
+            echo "xattr -cr /Applications/ImageGenerate.app"
+            echo '```'
+            echo ""
+            echo "然后即可正常双击打开。"
+          } > /tmp/release-notes.md
+          {
+            echo "body<<RELEASEEOF"
+            cat /tmp/release-notes.md
+            echo "RELEASEEOF"
+          } >> "$GITHUB_OUTPUT"
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.version || github.ref_name }}
+          body: ${{ steps.notes.outputs.body }}
+          files: |
+            artifacts/ImageGenerate-macos/*.dmg
+            artifacts/ImageGenerate-windows/*.exe
