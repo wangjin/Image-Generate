@@ -1,6 +1,6 @@
 [package]
 name = "image-generate"
-version = "0.1.0"
+version = "0.1.1"
 description = "图片生成桌面工具（OpenAI 兼容 API）"
 authors = ["wangjin"]
 edition = "2021"
