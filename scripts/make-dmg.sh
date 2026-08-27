@@ -7,6 +7,9 @@ set -euo pipefail
 SRC_APP="${1:?用法: make-dmg.sh <源.app路径> <输出.dmg路径>}"
 OUT_DIR="${2:?用法: make-dmg.sh <源.app路径> <输出目录>}"
 APP_NAME="ImageGenerate"
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+VER=$(python3 -c "import json;print(json.load(open('$REPO_DIR/src-tauri/tauri.conf.json'))['version'])")
+ARCH=$(uname -m)
 
 [ -d "$SRC_APP" ] || { echo "源不存在: $SRC_APP" >&2; exit 1; }
 
