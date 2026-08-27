@@ -152,20 +152,28 @@ export default function HistoryPage() {
             className="flex max-h-full w-full max-w-[920px] flex-col overflow-hidden rounded-md bg-paper shadow-2xl lg:flex-row"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* 左：暗井大图 */}
-            <div className="well relative flex min-h-[300px] flex-1 items-center justify-center !rounded-none p-5 lg:min-h-[520px]">
-              <DetailImage rel={selected.image} fallbackRel={selected.thumb} />
-              <span className="mono absolute bottom-3 left-4 text-[10.5px] text-bone-2">
-                {selected.image.split("/").pop()}
-              </span>
-              <button
-                type="button"
-                aria-label="关闭"
-                className="absolute top-2.5 right-3 text-[18px] leading-none text-bone-2 transition-colors hover:text-bone"
-                onClick={() => setSelectedId(null)}
-              >
-                ×
-              </button>
+            {/* 左：暗井大图 + 底部注记条（文件名独占一行，不与图片叠放） */}
+            <div className="well flex flex-1 flex-col overflow-hidden !rounded-none">
+              <div className="relative flex min-h-[260px] flex-1 items-center justify-center p-5 lg:min-h-[480px]">
+                <DetailImage rel={selected.image} fallbackRel={selected.thumb} />
+                <button
+                  type="button"
+                  aria-label="关闭"
+                  className="absolute top-2.5 right-3 text-[18px] leading-none text-bone-2 transition-colors hover:text-bone"
+                  onClick={() => setSelectedId(null)}
+                >
+                  ×
+                </button>
+              </div>
+              <div className="flex items-center gap-3 border-t border-white/10 px-4 py-2.5">
+                <span className="eyebrow shrink-0 !text-bone-2">FILE</span>
+                <span
+                  className="mono min-w-0 flex-1 truncate text-[10.5px] text-bone-2"
+                  title={selected.image}
+                >
+                  {selected.image}
+                </span>
+              </div>
             </div>
 
             {/* 右：纸质详情 */}
