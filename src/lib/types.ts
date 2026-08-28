@@ -59,7 +59,7 @@ export interface BatchItem {
 }
 
 export const DEFAULT_PARAMS: GenParams = {
-  size: "2048x2048",
+  size: "2720x1536",
   watermark: false,
   outputFormat: "png",
   responseFormat: "b64_json",
