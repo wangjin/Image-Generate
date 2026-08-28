@@ -48,8 +48,16 @@ export function generateImage(
   providerId: string,
   prompt: string,
   params: GenParams,
+  /** 批量时传入：同批共享文件名前缀，序号 1 起 */
+  batch?: { prefix: string; index: number },
 ): Promise<HistoryEntry> {
-  return invoke<HistoryEntry>("generate_image", { providerId, prompt, params });
+  return invoke<HistoryEntry>("generate_image", {
+    providerId,
+    prompt,
+    params,
+    batchPrefix: batch?.prefix,
+    batchIndex: batch?.index,
+  });
 }
 
 export function editImage(

@@ -16,6 +16,12 @@ GeneratePage.submit()
 
 ## 数据契约（新增，src/lib/types.ts + useAppStore.ts）
 
+### 批次命名契约（后端增量，2026-08-28 追加）
+
+- `runBatch` 开始时生成一次 `filePrefix = yyyyMMdd-HHmmss_uid6`（与后端单张命名同格式），逐条调用时传 `batchPrefix + batchIndex(1 起)`。
+- 后端 `generate_image` 新增可选参数 `batch_prefix/batch_index`，`save_result` 收到 `Some((prefix, idx))` 时文件名为 `{prefix}_{idx}.{ext}`、缩略图 `{prefix}_{idx}.thumb.png`；`None` 走原 `{ts}_{uid}` 规则。`edit_image` 恒传 `None`。
+- 序号 = 提交位置（与生成页卡片序号一致，失败项留缺号）；单条提交同样带 `_1` 后缀。
+
 ```ts
 // types.ts
 export type BatchStatus = "pending" | "running" | "done" | "failed" | "stopped";

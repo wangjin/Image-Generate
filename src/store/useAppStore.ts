@@ -25,6 +25,14 @@ function newBatchId(): string {
     : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+/** 批次文件名前缀：时间戳_随机码，与后端单张命名格式一致（yyyyMMdd-HHmmss） */
+function newBatchFilePrefix(): string {
+  const d = new Date();
+  const p = (n: number) => String(n).padStart(2, "0");
+  const ts = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+  return `${ts}_${newBatchId().replace(/-/g, "").slice(0, 6)}`;
+}
+
 interface AppStore {
   page: Page;
   setPage: (p: Page) => void;
@@ -98,6 +106,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       error: "",
     }));
     batchStopRequested = false;
+    const filePrefix = newBatchFilePrefix();
     set({ batchItems: items, batchRunning: true });
 
     for (let i = 0; i < items.length; i++) {
@@ -115,7 +124,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
         ),
       }));
       try {
-        const entry = await cmd.generateImage(providerId, items[i].prompt, params);
+        const entry = await cmd.generateImage(providerId, items[i].prompt, params, {
+          prefix: filePrefix,
+          index: i + 1,
+        });
         set((s) => ({
           batchItems: s.batchItems.map((it, j) =>
             j === i ? { ...it, status: "done", entry } : it,

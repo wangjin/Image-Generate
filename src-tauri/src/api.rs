@@ -132,6 +132,8 @@ struct SavedResult {
 }
 
 /// 把结果字节写入输出目录、生成缩略图、写历史索引。
+/// batch 为 Some((前缀, 序号)) 时文件名为 `{前缀}_{序号}`，同批多图共享前缀；
+/// 否则按单张规则 `{时间戳}_{随机码}` 命名。
 fn save_result(
     ctx: &AppContext,
     mode: &str,
@@ -141,6 +143,7 @@ fn save_result(
     params: &GenParams,
     input_copies: Vec<String>,
     bytes: &[u8],
+    batch: Option<(String, u32)>,
 ) -> Result<SavedResult, AppError> {
     let state = ctx.data.lock().unwrap_or_else(|p| p.into_inner()).clone();
     if state.output_dir.is_empty() {
@@ -154,9 +157,13 @@ fn save_result(
 
     let ts = chrono::Local::now().format("%Y%m%d-%H%M%S").to_string();
     let uid: String = uuid::Uuid::new_v4().simple().to_string().chars().take(6).collect();
+    let stem = match batch {
+        Some((prefix, idx)) => format!("{}_{}", prefix, idx),
+        None => format!("{}_{}", ts, uid),
+    };
     let ext = ext_of(&params.output_format);
-    let image_name = format!("{}_{}.{}", ts, uid, ext);
-    let thumb_name = format!("{}_{}.thumb.png", ts, uid);
+    let image_name = format!("{}.{}", stem, ext);
+    let thumb_name = format!("{}.thumb.png", stem);
     fs::write(images_dir.join(&image_name), bytes)?;
 
     // 缩略图；解码失败不阻塞主流程，thumb 留空由前端兜底显示原图
@@ -214,6 +221,10 @@ pub async fn generate_image(
     provider_id: String,
     prompt: String,
     params: GenParams,
+    // 批量批次前缀（前端每批生成一次，同批共享）
+    batch_prefix: Option<String>,
+    // 批内序号（1 起），与生成页卡片序号一致
+    batch_index: Option<u32>,
 ) -> Result<HistoryEntry, AppError> {
     if prompt.trim().is_empty() {
         return Err(AppError::config("Prompt 不能为空"));
@@ -242,8 +253,18 @@ pub async fn generate_image(
     let item = call_images_api(&url, &provider.api_key, body).await?;
     let bytes = fetch_result_bytes(&item).await?;
     let _ = app; // 预留事件推送，MVP 直接同步返回
-    save_result(&ctx, "generate", &provider.name, &provider.model, &prompt, &params, vec![], &bytes)
-        .map(|r| r.entry)
+    save_result(
+        &ctx,
+        "generate",
+        &provider.name,
+        &provider.model,
+        &prompt,
+        &params,
+        vec![],
+        &bytes,
+        batch_prefix.zip(batch_index),
+    )
+    .map(|r| r.entry)
 }
 
 #[tauri::command]
@@ -301,8 +322,18 @@ pub async fn edit_image(
     });
     let item = call_images_api(&url, &provider.api_key, body).await?;
     let bytes = fetch_result_bytes(&item).await?;
-    save_result(&ctx, "edit", &provider.name, &provider.model, &prompt, &params, input_copies, &bytes)
-        .map(|r| r.entry)
+    save_result(
+        &ctx,
+        "edit",
+        &provider.name,
+        &provider.model,
+        &prompt,
+        &params,
+        input_copies,
+        &bytes,
+        None,
+    )
+    .map(|r| r.entry)
 }
 
 /// 读取输出目录内文件并以 Data-URL 返回（历史缩略图/大图展示用）。
