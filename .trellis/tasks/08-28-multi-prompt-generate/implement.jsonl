@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "设计核心是复用：srcCache 抽 hook、ResultView 视觉复用、pressFix 模式沿用，实现前先读，避免重复造轮子"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "批量执行跨前端 store/组件与后端 Tauri 命令边界，需确认边界选择（前端串行、后端零改动）未被破坏"}

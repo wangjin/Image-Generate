@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "检查是否重复实现了已有能力（图片加载缓存、按钮 pressFix、看片台样式）"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "检查前端批量状态与后端单条命令契约边界：后端零改动承诺、HistoryEntry 消费正确性"}

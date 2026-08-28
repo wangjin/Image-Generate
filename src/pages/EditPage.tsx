@@ -5,6 +5,7 @@ import GenParamsForm from "../components/GenParamsForm";
 import PageHeader from "../components/PageHeader";
 import ResultView from "../components/ResultView";
 import { editImage, pickImages, toErrorMessage } from "../lib/commands";
+import { pressFix } from "../lib/pressFix";
 import { DEFAULT_PARAMS, type GenParams, type HistoryEntry } from "../lib/types";
 import { useAppStore } from "../store/useAppStore";
 
@@ -91,15 +92,7 @@ export default function EditPage() {
     }
   }
 
-  // WKWebView（macOS）在文本框聚焦时会吞掉第一次 click；
-  // 若按下时焦点仍在输入框，直接在 mousedown 阶段提交
-  function pressFix(e: React.MouseEvent) {
-    const el = document.activeElement;
-    if (el && (el.tagName === "TEXTAREA" || el.tagName === "INPUT")) {
-      e.preventDefault();
-      void submit();
-    }
-  }
+  // WKWebView（macOS）在文本框聚焦时会吞掉第一次 click，见 lib/pressFix
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -176,8 +169,7 @@ export default function EditPage() {
         <button
           type="button"
           disabled={loading}
-          onMouseDown={pressFix}
-          onClick={() => void submit()}
+          {...pressFix(() => void submit())}
           className="btn-primary"
         >
           {loading ? "编辑中" : "开始编辑"}

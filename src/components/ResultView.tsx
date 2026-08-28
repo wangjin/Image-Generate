@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { readImageDataUrl, revealPath, toErrorMessage } from "../lib/commands";
+import { revealPath } from "../lib/commands";
 import type { HistoryEntry } from "../lib/types";
+import { useImageDataUrl } from "../hooks/useImageDataUrl";
 
 interface Props {
   entry: HistoryEntry | null;
@@ -9,32 +9,9 @@ interface Props {
   loading?: boolean;
 }
 
-const srcCache = new Map<string, string>();
-
-/** 结果展示：看片台暗井 + 等宽注记 */
+/** 结果展示：看片台暗井 + 等宽注记（编辑页单图结果） */
 export default function ResultView({ entry, outputDir, loading }: Props) {
-  const [src, setSrc] = useState<string>("");
-  const [err, setErr] = useState("");
-
-  useEffect(() => {
-    if (!entry) {
-      setSrc("");
-      return;
-    }
-    const rel = entry.image;
-    const cached = srcCache.get(rel);
-    if (cached) {
-      setSrc(cached);
-      return;
-    }
-    readImageDataUrl(rel)
-      .then((dataUrl) => {
-        srcCache.set(rel, dataUrl);
-        setSrc(dataUrl);
-        setErr("");
-      })
-      .catch((e) => setErr(toErrorMessage(e)));
-  }, [entry]);
+  const { src, err } = useImageDataUrl(entry?.image ?? null);
 
   if (!entry && !loading) return null;
 

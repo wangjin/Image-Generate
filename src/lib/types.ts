@@ -45,6 +45,19 @@ export interface HistoryEntry {
   thumb: string;
 }
 
+/** 批量队列中单条 prompt 的执行状态 */
+export type BatchStatus = "pending" | "running" | "done" | "failed" | "stopped";
+
+export interface BatchItem {
+  id: string;
+  prompt: string;
+  status: BatchStatus;
+  /** done 时的生成结果 */
+  entry: HistoryEntry | null;
+  /** failed 时的错误文案 */
+  error: string;
+}
+
 export const DEFAULT_PARAMS: GenParams = {
   size: "2048x2048",
   watermark: false,

@@ -4,6 +4,8 @@ import { OUTPUT_FORMATS, RESPONSE_FORMATS, SIZE_OPTIONS } from "../lib/options";
 interface Props {
   value: GenParams;
   onChange: (p: GenParams) => void;
+  /** 批量运行中锁定参数 */
+  disabled?: boolean;
 }
 
 function Field({
@@ -24,17 +26,20 @@ function Field({
 function Switch({
   on,
   onToggle,
+  disabled,
 }: {
   on: boolean;
   onToggle: () => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={on}
+      disabled={disabled}
       onClick={onToggle}
-      className={`relative mt-0.5 inline-flex h-[20px] w-9 items-center rounded-full transition-colors duration-150 ${
+      className={`relative mt-0.5 inline-flex h-[20px] w-9 items-center rounded-full transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-45 ${
         on ? "bg-cinnabar" : "bg-line"
       }`}
     >
@@ -48,7 +53,7 @@ function Switch({
 }
 
 /** 参数仪表面板：size/format/response 为 select，水印与润色为开关 */
-export default function GenParamsForm({ value, onChange }: Props) {
+export default function GenParamsForm({ value, onChange, disabled = false }: Props) {
   const set = <K extends keyof GenParams>(k: K, v: GenParams[K]) =>
     onChange({ ...value, [k]: v });
 
@@ -60,8 +65,9 @@ export default function GenParamsForm({ value, onChange }: Props) {
       <div className="mt-4 grid grid-cols-2 gap-x-5 gap-y-4 lg:grid-cols-3">
         <Field label="分辨率 SIZE">
           <select
-            className="field select"
+            className="field select disabled:cursor-not-allowed disabled:opacity-50"
             value={value.size}
+            disabled={disabled}
             onChange={(e) => set("size", e.target.value)}
           >
             {SIZE_OPTIONS.map((o) => (
@@ -74,8 +80,9 @@ export default function GenParamsForm({ value, onChange }: Props) {
 
         <Field label="文件格式 FORMAT">
           <select
-            className="field select"
+            className="field select disabled:cursor-not-allowed disabled:opacity-50"
             value={value.outputFormat}
+            disabled={disabled}
             onChange={(e) =>
               set("outputFormat", e.target.value as GenParams["outputFormat"])
             }
@@ -90,8 +97,9 @@ export default function GenParamsForm({ value, onChange }: Props) {
 
         <Field label="返回方式 RETURN">
           <select
-            className="field select"
+            className="field select disabled:cursor-not-allowed disabled:opacity-50"
             value={value.responseFormat}
+            disabled={disabled}
             onChange={(e) =>
               set("responseFormat", e.target.value as GenParams["responseFormat"])
             }
@@ -105,13 +113,18 @@ export default function GenParamsForm({ value, onChange }: Props) {
         </Field>
 
         <Field label="水印 WATERMARK">
-          <Switch on={value.watermark} onToggle={() => set("watermark", !value.watermark)} />
+          <Switch
+            on={value.watermark}
+            onToggle={() => set("watermark", !value.watermark)}
+            disabled={disabled}
+          />
         </Field>
 
         <Field label="提示词润色 EXTEND">
           <Switch
             on={value.promptExtend}
             onToggle={() => set("promptExtend", !value.promptExtend)}
+            disabled={disabled}
           />
         </Field>
       </div>

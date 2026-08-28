@@ -1,29 +1,30 @@
 import { useEffect, useState } from "react";
+import BatchResultList from "../components/BatchResultList";
 import ErrorBar from "../components/ErrorBar";
 import GenParamsForm from "../components/GenParamsForm";
+import MultiPromptForm from "../components/MultiPromptForm";
 import PageHeader from "../components/PageHeader";
-import ResultView from "../components/ResultView";
-import { generateImage, toErrorMessage } from "../lib/commands";
-import { DEFAULT_PARAMS, type GenParams, type HistoryEntry } from "../lib/types";
+import { pressFix } from "../lib/pressFix";
+import { DEFAULT_PARAMS, type GenParams } from "../lib/types";
 import { useAppStore } from "../store/useAppStore";
 
 export default function GeneratePage() {
   const stateData = useAppStore((s) => s.stateData);
-  const refreshHistory = useAppStore((s) => s.refreshHistory);
-  const setLastResult = useAppStore((s) => s.setLastResult);
-  const lastResult = useAppStore((s) => s.lastResult);
   const generateDraft = useAppStore((s) => s.generateDraft);
   const setGenerateDraft = useAppStore((s) => s.setGenerateDraft);
+  const batchItems = useAppStore((s) => s.batchItems);
+  const batchRunning = useAppStore((s) => s.batchRunning);
+  const runBatch = useAppStore((s) => s.runBatch);
+  const stopBatch = useAppStore((s) => s.stopBatch);
 
-  const [prompt, setPrompt] = useState("");
+  const [prompts, setPrompts] = useState<string[]>([""]);
   const [params, setParams] = useState<GenParams>(DEFAULT_PARAMS);
-  const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
-  // 历史「复用 prompt」：进入页面时消费草稿
+  // 历史「复用 prompt」：进入页面时消费草稿（填充首框并重置为一框）
   useEffect(() => {
     if (generateDraft) {
-      setPrompt(generateDraft.prompt);
+      setPrompts([generateDraft.prompt]);
       setParams(generateDraft.params);
       setGenerateDraft(null);
     }
@@ -33,32 +34,20 @@ export default function GeneratePage() {
   const active = stateData?.providers.find((p) => p.id === activeId);
 
   async function submit() {
-    if (loading) return;
-    if (!prompt.trim()) {
-      setErr("请输入图像描述 prompt");
+    if (batchRunning) return;
+    const cleaned = prompts.map((p) => p.trim()).filter(Boolean);
+    if (cleaned.length === 0) {
+      setErr("请至少输入一条图像描述 prompt");
       return;
     }
-    setLoading(true);
     setErr("");
-    try {
-      const entry: HistoryEntry = await generateImage(activeId, prompt, params);
-      setLastResult(entry);
-      await refreshHistory();
-    } catch (e) {
-      setErr(toErrorMessage(e));
-    } finally {
-      setLoading(false);
-    }
+    await runBatch(cleaned, params, activeId);
   }
 
-  // WKWebView（macOS）在文本框聚焦时会吞掉第一次 click；
-  // 若按下时焦点仍在输入框，直接在 mousedown 阶段提交
-  function pressFix(e: React.MouseEvent) {
-    const el = document.activeElement;
-    if (el && (el.tagName === "TEXTAREA" || el.tagName === "INPUT")) {
-      e.preventDefault();
-      void submit();
-    }
+  // 运行中主按钮即「停止」（协作式，不打断在途请求），未运行时提交
+  function primaryAction() {
+    if (batchRunning) stopBatch();
+    else void submit();
   }
 
   return (
@@ -70,47 +59,41 @@ export default function GeneratePage() {
         <ErrorBar message={`服务商「${active.name}」还未填写 API Key，请到「设置」页填写`} />
       )}
 
-      <div className="mt-6 space-y-2">
-        <span className="eyebrow">PROMPT · 图像描述</span>
-        <textarea
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          onKeyDown={(e) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === "Enter") void submit();
-          }}
-          rows={5}
-          placeholder="一只海獭宝宝漂浮在平静海面上，柔和晨光，写实摄影风格（⌘+Enter 快速生成）"
-          className="field resize-y"
+      <div className="mt-6">
+        <MultiPromptForm
+          items={prompts}
+          onChange={setPrompts}
+          disabled={batchRunning}
+          onSubmit={() => void submit()}
         />
       </div>
 
       <div className="mt-7">
-        <GenParamsForm value={params} onChange={setParams} />
+        <GenParamsForm value={params} onChange={setParams} disabled={batchRunning} />
       </div>
 
       <div className="mt-8 flex items-center gap-4">
         <button
           type="button"
-          disabled={loading || !stateData}
-          onMouseDown={pressFix}
-          onClick={() => void submit()}
+          disabled={!batchRunning && !stateData}
+          {...pressFix(primaryAction)}
           className="btn-primary"
         >
-          {loading ? "生成中" : "生成"}
+          {batchRunning ? "停止" : "生成"}
         </button>
-        {loading && (
+        {batchRunning && (
           <span className="mono text-[11px] text-ink-2">
-            已提交请求（4K 分辨率可能耗时较长）
+            串行队列执行中 · 完成一张入库一张（4K 分辨率可能耗时较长）
           </span>
         )}
       </div>
 
       <div className="mt-6 space-y-6">
         <ErrorBar message={err} />
-        <ResultView
-          entry={lastResult?.mode === "generate" ? lastResult : null}
+        <BatchResultList
+          items={batchItems}
           outputDir={stateData?.outputDir ?? ""}
-          loading={loading}
+          running={batchRunning}
         />
       </div>
     </div>
