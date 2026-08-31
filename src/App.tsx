@@ -4,6 +4,8 @@ import GeneratePage from "./pages/GeneratePage";
 import EditPage from "./pages/EditPage";
 import HistoryPage from "./pages/HistoryPage";
 import SettingsPage from "./pages/SettingsPage";
+import UpdateReadyToast from "./components/UpdateReadyToast";
+import { useAutoUpdate } from "./hooks/useAutoUpdate";
 
 const NAV_ITEMS = [
   { key: "generate", label: "生成" },
@@ -18,6 +20,9 @@ export default function App() {
   const refreshState = useAppStore((s) => s.refreshState);
   const refreshHistory = useAppStore((s) => s.refreshHistory);
   const stateData = useAppStore((s) => s.stateData);
+  const appVersion = useAppStore((s) => s.appVersion);
+
+  useAutoUpdate();
 
   useEffect(() => {
     void refreshState();
@@ -37,7 +42,9 @@ export default function App() {
           <div className="font-display text-[21px] font-bold leading-tight tracking-widest">
             图片生成器
           </div>
-          <div className="eyebrow mt-2 !text-bone-2">v0.1 · IMAGES API</div>
+          <div className="eyebrow mt-2 !text-bone-2">
+            {appVersion ? `v${appVersion} · ` : ""}IMAGES API
+          </div>
         </div>
 
         <nav className="flex flex-1 flex-col">
@@ -99,6 +106,8 @@ export default function App() {
         {page === "history" && <HistoryPage />}
         {page === "settings" && <SettingsPage />}
       </main>
+
+      <UpdateReadyToast />
     </div>
   );
 }

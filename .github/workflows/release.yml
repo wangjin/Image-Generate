@@ -9,6 +9,10 @@ on:
       version:
         description: "Version tag (e.g. v1.0.0)"
         required: true
+      proxy_prefix:
+        description: "Proxy prefix baked into latest.json asset URLs"
+        required: false
+        default: "https://gh-proxy.org/"
 
 permissions:
   contents: write
@@ -37,11 +41,17 @@ jobs:
         include:
           - os: macos-15
             artifact_name: ImageGenerate-macos
-            artifact_path: dist-release/*.dmg
+            artifact_path: dist-release/*
           - os: windows-latest
             artifact_name: ImageGenerate-windows
-            artifact_path: src-tauri/target/release/bundle/nsis/*-setup.exe
+            artifact_path: |
+              src-tauri/target/release/bundle/nsis/*-setup.exe
+              src-tauri/target/release/bundle/nsis/*-setup.exe.sig
     runs-on: ${{ matrix.os }}
+    env:
+      # updater 产物（mac .app.tar.gz / win nsis .exe）的 minisign 签名密钥
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
@@ -58,6 +68,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Build app (tauri build)
         run: pnpm tauri build
+      - name: Repack updater artifacts from deep-signed app (macOS only)
+        if: matrix.os == 'macos-15'
+        run: bash scripts/make-updater-artifacts.sh src-tauri/target/release/bundle/macos dist-release
       - name: Deep ad-hoc sign & repack DMG (macOS only)
         if: matrix.os == 'macos-15'
         run: bash scripts/make-dmg.sh src-tauri/target/release/bundle/macos/ImageGenerate.app dist-release
@@ -114,6 +127,18 @@ jobs:
             cat /tmp/release-notes.md
             echo "RELEASEEOF"
           } >> "$GITHUB_OUTPUT"
+      - name: Generate updater manifest (latest.json)
+        env:
+          TAG: ${{ github.event.inputs.version || github.ref_name }}
+          PROXY_PREFIX: ${{ github.event.inputs.proxy_prefix || 'https://gh-proxy.org/' }}
+        run: |
+          python3 scripts/make-latest-json.py \
+            --tag "$TAG" \
+            --notes-file /tmp/release-notes.md \
+            --mac-dir artifacts/ImageGenerate-macos \
+            --win-dir artifacts/ImageGenerate-windows \
+            --proxy-prefix "$PROXY_PREFIX" \
+            --out latest.json
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -122,3 +147,7 @@ jobs:
           files: |
             artifacts/ImageGenerate-macos/*.dmg
             artifacts/ImageGenerate-windows/*.exe
+            artifacts/ImageGenerate-macos/*.app.tar.gz
+            artifacts/ImageGenerate-macos/*.app.tar.gz.sig
+            artifacts/ImageGenerate-windows/*-setup.exe.sig
+            latest.json

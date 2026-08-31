@@ -12,6 +12,14 @@ export interface AppStateData {
   providers: Provider[];
   activeProviderId: string;
   outputDir: string;
+  /** 更新加速前缀（拼在 GitHub 链接前），空串 = 直连 */
+  updateProxyPrefix: string;
+}
+
+/** check_update 返回的新版本元信息 */
+export interface UpdateManifest {
+  version: string;
+  notes: string | null;
 }
 
 export interface GenParams {

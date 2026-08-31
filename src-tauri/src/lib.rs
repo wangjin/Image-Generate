@@ -2,6 +2,7 @@ mod api;
 mod config;
 mod error;
 mod history;
+mod updater;
 
 use std::sync::Mutex;
 use tauri::Manager;
@@ -13,6 +14,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             let config_dir = app.path().app_config_dir()?;
             let mut state = config::load_state(config_dir)?;
@@ -29,6 +31,7 @@ pub fn run() {
                 config_dir: app.path().app_config_dir()?,
                 data: Mutex::new(state),
             });
+            app.manage(updater::PendingUpdate::default());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -37,11 +40,15 @@ pub fn run() {
             config::delete_provider,
             config::set_active_provider,
             config::set_output_dir,
+            config::set_update_proxy_prefix,
             api::generate_image,
             api::edit_image,
             api::read_image_data_url,
             api::reveal_path,
             history::list_history,
+            updater::check_update,
+            updater::download_update,
+            updater::install_update,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

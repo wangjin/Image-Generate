@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
-import type { AppStateData, GenParams, HistoryEntry, Provider } from "./types";
+import type { AppStateData, GenParams, HistoryEntry, Provider, UpdateManifest } from "./types";
 
 /** 把 Tauri invoke 的 rejection（AppError {kind,message} 或字符串）转成可展示文案 */
 export function toErrorMessage(e: unknown): string {
@@ -42,6 +42,25 @@ export function setActiveProvider(id: string): Promise<AppStateData> {
 
 export function setOutputDir(dir: string): Promise<AppStateData> {
   return invoke<AppStateData>("set_output_dir", { dir });
+}
+
+export function setUpdateProxyPrefix(prefix: string): Promise<AppStateData> {
+  return invoke<AppStateData>("set_update_proxy_prefix", { prefix });
+}
+
+/** 检查更新；返回 null 表示已是最新 */
+export function checkUpdate(): Promise<UpdateManifest | null> {
+  return invoke<UpdateManifest | null>("check_update");
+}
+
+/** 下载 check 到的更新包，进度经 update-progress 事件推送 */
+export function downloadUpdate(): Promise<UpdateManifest> {
+  return invoke<UpdateManifest>("download_update");
+}
+
+/** 安装已下载的更新（macOS 安装后自动重启；Windows 由安装器接管，进程退出） */
+export function installUpdate(): Promise<void> {
+  return invoke<void>("install_update");
 }
 
 export function generateImage(

@@ -7,6 +7,7 @@ import type {
   GenParams,
   HistoryEntry,
   Provider,
+  UpdateManifest,
 } from "../lib/types";
 
 export type Page = "generate" | "edit" | "history" | "settings";
@@ -62,6 +63,24 @@ interface AppStore {
   runBatch: (prompts: string[], params: GenParams, providerId: string) => Promise<void>;
   /** 协作式停止：不打断在途请求，仅阻止后续条目 */
   stopBatch: () => void;
+
+  /** 应用版本（启动时由 useAutoUpdate 填充） */
+  appVersion: string;
+  setAppVersion: (v: string) => void;
+
+  /** 更新流程：检查中 / 下载中（进度）/ 已就绪待安装 / 安装中 */
+  updateChecking: boolean;
+  updateDownloading: boolean;
+  updateProgress: { downloaded: number; total: number | null } | null;
+  updateReady: UpdateManifest | null;
+  updateInstalling: boolean;
+  /** 手动检查的反馈文案（已是最新 / 失败原因） */
+  updateNotice: string;
+  updateError: string;
+  setUpdateProgress: (p: { downloaded: number; total: number | null } | null) => void;
+  /** 检查并自动下载；manual=true 时失败会显示错误，自动检查静默 */
+  checkForUpdates: (manual: boolean) => Promise<void>;
+  installUpdate: () => Promise<void>;
 
   activeProvider: () => Provider | undefined;
 }
@@ -146,6 +165,51 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
   stopBatch: () => {
     batchStopRequested = true;
+  },
+
+  appVersion: "",
+  setAppVersion: (appVersion) => set({ appVersion }),
+
+  updateChecking: false,
+  updateDownloading: false,
+  updateProgress: null,
+  updateReady: null,
+  updateInstalling: false,
+  updateNotice: "",
+  updateError: "",
+  setUpdateProgress: (updateProgress) => set({ updateProgress }),
+  checkForUpdates: async (manual) => {
+    const s = get();
+    if (s.updateChecking || s.updateDownloading || s.updateInstalling) return;
+    set({ updateChecking: true, updateNotice: "", updateError: "" });
+    let manifest: UpdateManifest | null;
+    try {
+      manifest = await cmd.checkUpdate();
+    } catch (e) {
+      set({ updateChecking: false, updateError: manual ? toErrorMessage(e) : "" });
+      return;
+    }
+    if (!manifest) {
+      set({ updateChecking: false, updateNotice: "已是最新版本" });
+      return;
+    }
+    set({ updateChecking: false, updateDownloading: true, updateProgress: { downloaded: 0, total: null } });
+    try {
+      await cmd.downloadUpdate();
+      set({ updateDownloading: false, updateProgress: null, updateReady: manifest });
+    } catch (e) {
+      set({ updateDownloading: false, updateProgress: null, updateError: toErrorMessage(e) });
+    }
+  },
+  installUpdate: async () => {
+    if (get().updateInstalling) return;
+    set({ updateInstalling: true, updateError: "" });
+    try {
+      await cmd.installUpdate();
+      // macOS/Linux 安装成功即重启；Windows 安装器接管后进程退出，均不会走到这里
+    } catch (e) {
+      set({ updateInstalling: false, updateError: toErrorMessage(e) });
+    }
   },
 
   activeProvider: () => {

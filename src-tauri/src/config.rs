@@ -39,6 +39,13 @@ pub struct AppStateData {
     pub providers: Vec<Provider>,
     pub active_provider_id: String,
     pub output_dir: String,
+    /// 更新加速前缀（拼在 GitHub 链接前），空串 = 直连
+    #[serde(default = "default_update_proxy_prefix")]
+    pub update_proxy_prefix: String,
+}
+
+fn default_update_proxy_prefix() -> String {
+    crate::updater::DEFAULT_PROXY_PREFIX.to_string()
 }
 
 /// 进程内共享上下文：配置目录 + 互斥锁保护的持久化状态。
@@ -71,6 +78,7 @@ pub fn load_state(config_dir: PathBuf) -> Result<AppStateData, AppError> {
             active_provider_id: BUILTIN_PROVIDER_ID.to_string(),
             providers: vec![builtin_provider()],
             output_dir: String::new(), // 由 lib.rs setup 时以系统图片目录填充
+            update_proxy_prefix: default_update_proxy_prefix(),
         };
         fs::write(file, serde_json::to_string_pretty(&state)?)?;
         Ok(state)
@@ -162,6 +170,23 @@ pub fn set_output_dir(ctx: tauri::State<'_, AppContext>, dir: String) -> Result<
     fs::create_dir_all(&dir).map_err(|e| AppError::io(format!("无法创建输出目录：{}", e)))?;
     let mut state = ctx.data.lock().unwrap_or_else(|p| p.into_inner()).clone();
     state.output_dir = dir;
+    persist(&ctx, &state)?;
+    *ctx.data.lock().unwrap_or_else(|p| p.into_inner()) = state.clone();
+    Ok(state)
+}
+
+#[tauri::command]
+pub fn set_update_proxy_prefix(ctx: tauri::State<'_, AppContext>, prefix: String) -> Result<AppStateData, AppError> {
+    let prefix = prefix.trim().to_string();
+    let valid = prefix.is_empty()
+        || ((prefix.starts_with("http://") || prefix.starts_with("https://")) && prefix.ends_with('/'));
+    if !valid {
+        return Err(AppError::config(
+            "前缀须以 http(s):// 开头并以 / 结尾（如 https://gh-proxy.org/），留空表示直连",
+        ));
+    }
+    let mut state = ctx.data.lock().unwrap_or_else(|p| p.into_inner()).clone();
+    state.update_proxy_prefix = prefix;
     persist(&ctx, &state)?;
     *ctx.data.lock().unwrap_or_else(|p| p.into_inner()) = state.clone();
     Ok(state)

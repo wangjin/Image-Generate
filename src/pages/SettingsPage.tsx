@@ -6,6 +6,7 @@ import {
   pickDirectory,
   setActiveProvider,
   setOutputDir,
+  setUpdateProxyPrefix,
   toErrorMessage,
   upsertProvider,
 } from "../lib/commands";
@@ -112,6 +113,153 @@ function ProviderForm({
   );
 }
 
+/** 关于与更新：版本 / 检查更新与安装 / 加速前缀 */
+function UpdateSection() {
+  const stateData = useAppStore((s) => s.stateData);
+  const refreshState = useAppStore((s) => s.refreshState);
+  const appVersion = useAppStore((s) => s.appVersion);
+  const checking = useAppStore((s) => s.updateChecking);
+  const downloading = useAppStore((s) => s.updateDownloading);
+  const progress = useAppStore((s) => s.updateProgress);
+  const ready = useAppStore((s) => s.updateReady);
+  const installing = useAppStore((s) => s.updateInstalling);
+  const notice = useAppStore((s) => s.updateNotice);
+  const updateError = useAppStore((s) => s.updateError);
+  const batchRunning = useAppStore((s) => s.batchRunning);
+  const checkForUpdates = useAppStore((s) => s.checkForUpdates);
+  const installUpdate = useAppStore((s) => s.installUpdate);
+
+  const [prefix, setPrefix] = useState<string | null>(null);
+  const [prefixErr, setPrefixErr] = useState("");
+  const [prefixSaving, setPrefixSaving] = useState(false);
+
+  const busy = checking || downloading || installing;
+  const currentPrefix = prefix ?? stateData?.updateProxyPrefix ?? "";
+  const pct =
+    progress && progress.total
+      ? Math.min(100, Math.round((progress.downloaded / progress.total) * 100))
+      : null;
+
+  async function savePrefix() {
+    if (currentPrefix === stateData?.updateProxyPrefix) return;
+    setPrefixSaving(true);
+    setPrefixErr("");
+    try {
+      await setUpdateProxyPrefix(currentPrefix);
+      await refreshState();
+      setPrefix(null);
+    } catch (e) {
+      setPrefixErr(toErrorMessage(e));
+    } finally {
+      setPrefixSaving(false);
+    }
+  }
+
+  return (
+    <section className="mt-10">
+      <div className="rule-row">
+        <span className="eyebrow">关于与更新 ABOUT &amp; UPDATE</span>
+        <span className="mono text-[11px] text-ink-2">
+          {appVersion ? `当前 v${appVersion}` : ""}
+        </span>
+      </div>
+
+      <div className="mt-4 rounded-[3px] border border-line bg-paper-2 px-4 py-3.5">
+        {/* 更新状态行 */}
+        <div className="flex flex-wrap items-center gap-3">
+          {ready ? (
+            <>
+              <span className="text-[13px]">
+                新版本 <span className="mono font-medium">v{ready.version}</span> 已就绪
+              </span>
+              <button
+                type="button"
+                disabled={batchRunning || installing}
+                title={batchRunning ? "批量生成进行中，完成后即可重启安装" : ""}
+                onClick={() => void installUpdate()}
+                className="btn-primary !py-[7px] !text-[12.5px]"
+              >
+                {installing ? "安装中…" : "重启并安装"}
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void checkForUpdates(true)}
+                className="btn-ghost !py-[7px] !text-[12.5px]"
+              >
+                重新检查
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void checkForUpdates(true)}
+                className="btn-primary !py-[7px] !text-[12.5px]"
+              >
+                {checking ? "检查中…" : downloading ? "下载更新中…" : "检查更新"}
+              </button>
+              {notice && <span className="text-[12.5px] text-ink-2">{notice}</span>}
+            </>
+          )}
+        </div>
+
+        {/* 下载进度 */}
+        {downloading && (
+          <div className="mt-3">
+            <div className="h-1 w-full overflow-hidden rounded bg-line">
+              <div
+                className="h-full bg-cinnabar transition-[width] duration-150"
+                style={{ width: pct === null ? "100%" : `${pct}%` }}
+              />
+            </div>
+            <div className="mono mt-1 text-[10.5px] text-ink-2">
+              {progress
+                ? `${(progress.downloaded / 1048576).toFixed(1)} MB${
+                    progress.total ? ` / ${(progress.total / 1048576).toFixed(1)} MB` : ""
+                  }`
+                : ""}
+            </div>
+          </div>
+        )}
+        {ready?.notes && (
+          <p className="mt-3 line-clamp-6 text-[12px] leading-5 whitespace-pre-line text-ink-2">
+            {ready.notes.trim()}
+          </p>
+        )}
+        <ErrorBar message={updateError} />
+      </div>
+
+      {/* 加速前缀 */}
+      <div className="mt-4 flex items-end gap-2">
+        <label className="min-w-0 flex-1 space-y-1.5">
+          <span className="eyebrow">更新加速前缀 PROXY PREFIX</span>
+          <input
+            className="field mono !text-[12px]"
+            value={currentPrefix}
+            onChange={(e) => setPrefix(e.target.value)}
+            placeholder="https://gh-proxy.org/（留空 = 直连 GitHub）"
+          />
+        </label>
+        <button
+          type="button"
+          disabled={prefixSaving || prefix === null || currentPrefix === stateData?.updateProxyPrefix}
+          onClick={() => void savePrefix()}
+          className="btn-primary shrink-0 !py-[7px] !text-[12.5px]"
+        >
+          {prefixSaving ? "保存中" : "保存前缀"}
+        </button>
+      </div>
+      <ErrorBar message={prefixErr} />
+      <p className="mt-2.5 mono text-[10.5px] leading-5 text-ink-2">
+        国内网络访问 GitHub Release 受限时，经镜像前缀加速（如 https://gh-proxy.org/ 或
+        https://ghfast.top/）；留空则直连。前缀须以 http(s):// 开头并以 / 结尾。
+      </p>
+    </section>
+  );
+}
+
 export default function SettingsPage() {
   const stateData = useAppStore((s) => s.stateData);
   const refreshState = useAppStore((s) => s.refreshState);
@@ -137,7 +285,7 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader title="设置" caption="PROVIDERS · OUTPUT" />
+      <PageHeader title="设置" caption="PROVIDERS · OUTPUT · UPDATE" />
       <ErrorBar message={err} />
 
       {/* 服务商 */}
@@ -257,6 +405,9 @@ export default function SettingsPage() {
           images / thumbs / inputs 子目录自动创建；所有结果与编辑输入副本均保存于此。
         </p>
       </section>
+
+      {/* 关于与更新 */}
+      <UpdateSection />
     </div>
   );
 }
