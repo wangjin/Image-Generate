@@ -25,6 +25,10 @@ jobs:
   build-macos:
     needs: check
     runs-on: macos-15
+    env:
+      # createUpdaterArtifacts 需要私钥签名；缺失时 tauri build 直接报错
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
