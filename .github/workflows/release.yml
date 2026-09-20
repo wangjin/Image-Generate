@@ -32,6 +32,16 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Type-check & frontend build (tsc + vite)
         run: pnpm build
+      - name: Verify release version matches tauri.conf.json
+        env:
+          REL_VERSION: ${{ github.event.inputs.version || github.ref_name }}
+        run: |
+          APP_VER=$(python3 -c "import json;print(json.load(open('src-tauri/tauri.conf.json'))['version'])")
+          REL_VER="${REL_VERSION#v}"
+          if [ "$APP_VER" != "$REL_VER" ]; then
+            echo "::error::发布版本 $REL_VER 与 tauri.conf.json 中的应用版本 $APP_VER 不一致，请先 bump 版本再打 tag"
+            exit 1
+          fi
 
   build:
     needs: check
